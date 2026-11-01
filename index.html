@@ -60,8 +60,7 @@
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">Cuestionario:</label>
                     <select id="quiz-select" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none text-lg bg-white">
-                        <option value="matematicas">📐 Matemáticas - Fracciones y Decimales</option>
-                        <option value="ciencias">🌍 Ciencias Naturales - El Ecosistema</option>
+                        <!-- Se llena dinámicamente -->
                     </select>
                 </div>
 
@@ -75,7 +74,7 @@
         <div id="view-quiz" class="hidden bg-white rounded-3xl shadow-xl p-8 border-4 border-indigo-200">
             <div class="flex justify-between items-center mb-6 border-b pb-4">
                 <span id="quiz-title-display" class="font-bold text-indigo-600 text-lg">Asignatura</span>
-                <span id="question-progress" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-sm">Pregunta 1 de 3</span>
+                <span id="question-progress" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-sm">Pregunta 1 de 10</span>
             </div>
 
             <div id="question-container" class="mb-8"></div>
@@ -124,45 +123,64 @@
             </div>
 
             <div id="teacher-login">
-                <p class="text-slate-600 mb-4">Introduce la contraseña para ver los datos locales:</p>
+                <p class="text-slate-600 mb-4">Introduce la contraseña para acceder al panel:</p>
                 <input type="password" id="teacher-pass" placeholder="Contraseña: 1234" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 mb-4 focus:outline-none focus:border-indigo-500">
                 <button onclick="checkPass()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl">Entrar</button>
             </div>
 
-            <div id="teacher-dash" class="hidden space-y-4">
-                <div class="flex justify-between items-center">
-                    <p class="text-xs text-slate-500">💡 Las notas se envían automáticamente a tu Google Sheets.</p>
-                    <button onclick="clearLocalResults()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs px-3 py-2 rounded-xl font-bold transition">
-                        🗑️ Borrar registros locales
-                    </button>
+            <div id="teacher-dash" class="hidden space-y-6">
+                <!-- Pestañas del Panel -->
+                <div class="flex space-x-2 border-b pb-3">
+                    <button onclick="switchTab('results')" id="tab-results-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm">📋 Resultados</button>
+                    <button onclick="switchTab('creator')" id="tab-creator-btn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm">✏️ Crear Examen (10 Preguntas)</button>
                 </div>
-                <div id="results-table" class="overflow-x-auto"></div>
+
+                <!-- PESTAÑA RESULTADOS -->
+                <div id="section-results" class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs text-slate-500">💡 Las notas se envían a tu Google Sheets.</p>
+                        <button onclick="clearLocalResults()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs px-3 py-2 rounded-xl font-bold transition">
+                            🗑️ Borrar registros locales
+                        </button>
+                    </div>
+                    <div id="results-table" class="overflow-x-auto"></div>
+                </div>
+
+                <!-- PESTAÑA CREAR EXAMEN (10 PREGUNTAS) -->
+                <div id="section-creator" class="hidden space-y-4">
+                    <h4 class="font-bold text-slate-700">Crear Examen de 10 Preguntas</h4>
+                    <form onsubmit="saveNewQuiz(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Título del Examen (ej: 📐 Matemáticas - Tema 3):</label>
+                            <input type="text" id="new-quiz-title" required class="w-full px-3 py-2 rounded-xl border-2 border-slate-200 text-sm">
+                        </div>
+
+                        <!-- Contenedor generado por JS para las 10 preguntas -->
+                        <div id="questions-form-container" class="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+                            <!-- Se inyectan las 10 preguntas aquí -->
+                        </div>
+
+                        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-sm shadow-md">
+                            💾 Guardar Examen de 10 Preguntas
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- LÓGICA DE LA APLICACIÓN -->
     <script>
-        // =========================================================================
-        // URL DE GOOGLE APPS SCRIPT INTEGRADA
-        // =========================================================================
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHx4epzOAY87c1URzXE0izNwyA3opQ9m6M1Jpk0SH61x91J01ei56FOVDrjabrYvpOxA/exec";
 
-        // BANCO DE PREGUNTAS
-        const quizData = {
+        // BANCO DE PREGUNTAS POR DEFECTO (Ejemplos recortados para mantener fluidez, o cargados de localStorage)
+        let quizData = JSON.parse(localStorage.getItem('custom_quizzes')) || {
             matematicas: {
-                title: "📐 Matemáticas - Fracciones y Decimales",
+                title: "📐 Matemáticas - Test de 3 Preguntas",
                 questions: [
                     { question: "¿Cuál de las siguientes fracciones es equivalente a 1/2?", options: ["2/4", "1/3", "3/5", "4/10"], correct: 0 },
                     { question: "Si sumamos 3.5 y 2.2, ¿cuánto obtenemos?", options: ["5.2", "5.7", "6.0", "4.7"], correct: 1 },
                     { question: "¿Qué número representa el numerador en la fracción 3/4?", options: ["El número de abajo", "El total de partes", "El número de arriba", "El resto"], correct: 2 }
-                ]
-            },
-            ciencias: {
-                title: "🌍 Ciencias Naturales - El Ecosistema",
-                questions: [
-                    { question: "¿Cómo se llaman los seres vivos que fabrican su propio alimento?", options: ["Consumidores", "Descomponedores", "Productores", "Carnívoros"], correct: 2 },
-                    { question: "¿Qué elemento es fundamental para la fotosíntesis además del agua?", options: ["Luz del Sol", "Frío nocturno", "Sal", "Arena"], correct: 0 }
                 ]
             }
         };
@@ -171,6 +189,50 @@
         let currentQuestionIndex = 0;
         let studentAnswers = [];
         let studentInfo = {};
+
+        function initQuizSelector() {
+            const select = document.getElementById('quiz-select');
+            select.innerHTML = "";
+            for (let key in quizData) {
+                let opt = document.createElement('option');
+                opt.value = key;
+                opt.innerText = quizData[key].title;
+                select.appendChild(opt);
+            }
+            buildCreatorForm();
+        }
+
+        // Generar dinámicamente los campos para las 10 preguntas en el panel de profesor
+        function buildCreatorForm() {
+            const container = document.getElementById('questions-form-container');
+            let html = "";
+            for (let i = 1; i <= 10; i++) {
+                html += `
+                    <div class="bg-slate-50 p-4 rounded-2xl border space-y-3">
+                        <h5 class="font-bold text-sm text-indigo-600">Pregunta ${i} ${i === 1 ? '(Obligatoria)' : '(Opcional o completa las 10)'}</h5>
+                        <input type="text" id="q${i}-text" placeholder="Enunciado de la pregunta ${i}..." ${i === 1 ? 'required' : ''} class="w-full px-3 py-2 rounded-xl border text-sm bg-white">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="q${i}-opt0" placeholder="Opción A" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
+                            <input type="text" id="q${i}-opt1" placeholder="Opción B" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
+                            <input type="text" id="q${i}-opt2" placeholder="Opción C" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
+                            <input type="text" id="q${i}-opt3" placeholder="Opción D" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Respuesta correcta:</label>
+                            <select id="q${i}-correct" class="w-full px-3 py-2 rounded-xl border text-sm bg-white">
+                                <option value="0">Opción A</option>
+                                <option value="1">Opción B</option>
+                                <option value="2">Opción C</option>
+                                <option value="3">Opción D</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        window.onload = initQuizSelector;
 
         function startQuiz(e) {
             e.preventDefault();
@@ -248,7 +310,6 @@
             document.getElementById('final-score').innerText = `${score} / 10`;
             document.getElementById('review-container').innerHTML = reviewHtml;
 
-            // Guardar copia local en la tablet
             const results = JSON.parse(localStorage.getItem('quiz_results') || '[]');
             results.push({ name: studentInfo.name, grade: studentInfo.grade, quiz: currentQuiz.title, score, date: new Date().toLocaleDateString() });
             localStorage.setItem('quiz_results', JSON.stringify(results));
@@ -256,7 +317,6 @@
             document.getElementById('view-quiz').classList.add('hidden');
             document.getElementById('view-results').classList.remove('hidden');
 
-            // Enviar a Google Sheets
             sendToGoogleSheets({
                 date: new Date().toLocaleString('es-ES'),
                 name: studentInfo.name,
@@ -268,7 +328,6 @@
 
         function sendToGoogleSheets(data) {
             const syncStatus = document.getElementById('sync-status');
-            
             if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "PEGA_AQUÍ_TU_URL_DE_GOOGLE_APPS_SCRIPT") {
                 syncStatus.className = "mb-6 text-sm font-semibold text-slate-500 bg-slate-100 p-3 rounded-xl";
                 syncStatus.innerText = "ℹ️ Modo local (Sin URL de Google Sheets).";
@@ -306,6 +365,20 @@
             }
         }
 
+        function switchTab(tab) {
+            if (tab === 'results') {
+                document.getElementById('section-results').classList.remove('hidden');
+                document.getElementById('section-creator').classList.add('hidden');
+                document.getElementById('tab-results-btn').className = "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm";
+                document.getElementById('tab-creator-btn').className = "px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm";
+            } else {
+                document.getElementById('section-results').classList.add('hidden');
+                document.getElementById('section-creator').classList.remove('hidden');
+                document.getElementById('tab-creator-btn').className = "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm";
+                document.getElementById('tab-results-btn').className = "px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm";
+            }
+        }
+
         function loadTable() {
             const results = JSON.parse(localStorage.getItem('quiz_results') || '[]');
             if(!results.length) {
@@ -322,6 +395,50 @@
                 localStorage.removeItem('quiz_results');
                 loadTable();
             }
+        }
+
+        function saveNewQuiz(e) {
+            e.preventDefault();
+            const title = document.getElementById('new-quiz-title').value;
+            let questionsList = [];
+
+            // Recoger las 10 preguntas del formulario
+            for (let i = 1; i <= 10; i++) {
+                const text = document.getElementById(`q${i}-text`).value;
+                if (text.trim() !== "") {
+                    const opt0 = document.getElementById(`q${i}-opt0`).value;
+                    const opt1 = document.getElementById(`q${i}-opt1`).value;
+                    const opt2 = document.getElementById(`q${i}-opt2`).value;
+                    const opt3 = document.getElementById(`q${i}-opt3`).value;
+                    const correct = parseInt(document.getElementById(`q${i}-correct`).value);
+
+                    questionsList.push({
+                        question: text,
+                        options: [opt0, opt1, opt2, opt3],
+                        correct: correct
+                    });
+                }
+            }
+
+            if (questionsList.length === 0) {
+                alert("Debes rellenar al menos la primera pregunta.");
+                return;
+            }
+
+            const quizKey = 'examen_' + Date.now();
+            quizData[quizKey] = {
+                title: title,
+                questions: questionsList
+            };
+
+            localStorage.setItem('custom_quizzes', JSON.stringify(quizData));
+            initQuizSelector();
+            alert(`¡Examen "${title}" guardado con éxito con ${questionsList.length} preguntas!`);
+            
+            // Limpiar formulario
+            document.getElementById('new-quiz-title').value = "";
+            buildCreatorForm();
+            switchTab('results');
         }
     </script>
 </body>
