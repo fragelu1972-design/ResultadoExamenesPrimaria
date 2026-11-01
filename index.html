@@ -144,7 +144,7 @@
     <!-- LÓGICA DE LA APLICACIÓN -->
     <script>
         // =========================================================================
-        // ⚠️ PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT (Entre las dos comillas)
+        // URL DE GOOGLE APPS SCRIPT INTEGRADA
         // =========================================================================
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHx4epzOAY87c1URzXE0izNwyA3opQ9m6M1Jpk0SH61x91J01ei56FOVDrjabrYvpOxA/exec";
 
@@ -269,7 +269,7 @@
         function sendToGoogleSheets(data) {
             const syncStatus = document.getElementById('sync-status');
             
-            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbxHx4epzOAY87c1URzXE0izNwyA3opQ9m6M1Jpk0SH61x91J01ei56FOVDrjabrYvpOxA/exec") {
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "PEGA_AQUÍ_TU_URL_DE_GOOGLE_APPS_SCRIPT") {
                 syncStatus.className = "mb-6 text-sm font-semibold text-slate-500 bg-slate-100 p-3 rounded-xl";
                 syncStatus.innerText = "ℹ️ Modo local (Sin URL de Google Sheets).";
                 return;
@@ -278,7 +278,7 @@
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify(data)
             })
             .then(() => {
@@ -317,7 +317,6 @@
             document.getElementById('results-table').innerHTML = html + `</table>`;
         }
 
-        // FUNCIÓN PARA BORRAR LOS REGISTROS LOCALES
         function clearLocalResults() {
             if (confirm("¿Seguro que quieres borrar todos los registros guardados en esta tablet?")) {
                 localStorage.removeItem('quiz_results');
