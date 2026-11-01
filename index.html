@@ -130,7 +130,12 @@
             </div>
 
             <div id="teacher-dash" class="hidden space-y-4">
-                <p class="text-sm text-slate-500">💡 Recuerda que todas las notas de todas las tablets se están enviando automáticamente a tu Google Drive.</p>
+                <div class="flex justify-between items-center">
+                    <p class="text-xs text-slate-500">💡 Las notas se envían automáticamente a tu Google Sheets.</p>
+                    <button onclick="clearLocalResults()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs px-3 py-2 rounded-xl font-bold transition">
+                        🗑️ Borrar registros locales
+                    </button>
+                </div>
                 <div id="results-table" class="overflow-x-auto"></div>
             </div>
         </div>
@@ -140,10 +145,8 @@
     <script>
         // =========================================================================
         // ⚠️ PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT (Entre las dos comillas)
-        // Ejemplo: const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx.../exec";
         // =========================================================================
         const GOOGLE_SCRIPT_URL = "PEGA_AQUÍ_TU_URL_DE_GOOGLE_APPS_SCRIPT";
-
 
         // BANCO DE PREGUNTAS
         const quizData = {
@@ -245,7 +248,7 @@
             document.getElementById('final-score').innerText = `${score} / 10`;
             document.getElementById('review-container').innerHTML = reviewHtml;
 
-            // Guardar en la tablet localmente (Copia de seguridad)
+            // Guardar copia local en la tablet
             const results = JSON.parse(localStorage.getItem('quiz_results') || '[]');
             results.push({ name: studentInfo.name, grade: studentInfo.grade, quiz: currentQuiz.title, score, date: new Date().toLocaleDateString() });
             localStorage.setItem('quiz_results', JSON.stringify(results));
@@ -253,7 +256,7 @@
             document.getElementById('view-quiz').classList.add('hidden');
             document.getElementById('view-results').classList.remove('hidden');
 
-            // --- ENVÍO AUTOMÁTICO A GOOGLE SHEETS ---
+            // Enviar a Google Sheets
             sendToGoogleSheets({
                 date: new Date().toLocaleString('es-ES'),
                 name: studentInfo.name,
@@ -266,9 +269,9 @@
         function sendToGoogleSheets(data) {
             const syncStatus = document.getElementById('sync-status');
             
-            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbxHiomfbcbYnIkgbCawJkA6wizmNL_qbE3q35v2BFI4B-PSa5r9aCvph3P92lRg3jEcPA/exec") {
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "PEGA_AQUÍ_TU_URL_DE_GOOGLE_APPS_SCRIPT") {
                 syncStatus.className = "mb-6 text-sm font-semibold text-slate-500 bg-slate-100 p-3 rounded-xl";
-                syncStatus.innerText = "ℹ️ Modo local (No has configurado aún la URL de Google Sheets).";
+                syncStatus.innerText = "ℹ️ Modo local (Sin URL de Google Sheets).";
                 return;
             }
 
@@ -283,9 +286,9 @@
                 syncStatus.innerText = "✅ ¡Nota enviada con éxito a la hoja del profesor!";
             })
             .catch(error => {
-                console.error("Error al enviar a Google Sheets:", error);
+                console.error("Error al enviar:", error);
                 syncStatus.className = "mb-6 text-sm font-semibold text-rose-700 bg-rose-100 p-3 rounded-xl border border-rose-300";
-                syncStatus.innerText = "⚠️ No se pudo enviar a la nube (Comprueba la conexión). Se guardó en la tablet.";
+                syncStatus.innerText = "⚠️ Error al enviar a la nube. Guardado en memoria local.";
             });
         }
 
@@ -306,12 +309,20 @@
         function loadTable() {
             const results = JSON.parse(localStorage.getItem('quiz_results') || '[]');
             if(!results.length) {
-                document.getElementById('results-table').innerHTML = `<p class="text-sm text-slate-400">Sin datos locales en esta tablet.</p>`;
+                document.getElementById('results-table').innerHTML = `<p class="text-sm text-slate-400 py-4 text-center">No hay registros guardados en esta tablet.</p>`;
                 return;
             }
-            let html = `<table class="w-full text-left text-sm"><tr class="bg-slate-100"><th class="p-2">Alumno</th><th class="p-2">Curso</th><th class="p-2">Nota</th></tr>`;
-            results.forEach(r => html += `<tr class="border-b"><td class="p-2 font-bold">${r.name}</td><td class="p-2">${r.grade}</td><td class="p-2 text-indigo-600 font-bold">${r.score}</td></tr>`);
+            let html = `<table class="w-full text-left text-sm"><tr class="bg-slate-100"><th class="p-2">Alumno</th><th class="p-2">Curso</th><th class="p-2">Nota</th><th class="p-2">Fecha</th></tr>`;
+            results.forEach(r => html += `<tr class="border-b"><td class="p-2 font-bold">${r.name}</td><td class="p-2">${r.grade}</td><td class="p-2 text-indigo-600 font-bold">${r.score}</td><td class="p-2 text-slate-400 text-xs">${r.date}</td></tr>`);
             document.getElementById('results-table').innerHTML = html + `</table>`;
+        }
+
+        // FUNCIÓN PARA BORRAR LOS REGISTROS LOCALES
+        function clearLocalResults() {
+            if (confirm("¿Seguro que quieres borrar todos los registros guardados en esta tablet?")) {
+                localStorage.removeItem('quiz_results');
+                loadTable();
+            }
         }
     </script>
 </body>
