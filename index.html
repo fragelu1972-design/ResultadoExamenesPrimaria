@@ -134,20 +134,23 @@
                     <button onclick="switchTab('creator')" id="tab-creator-btn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm">✏️ Crear Examen</button>
                 </div>
 
-                <!-- PESTAÑA RESULTADOS CLOUD CON FILTROS -->
+                <!-- PESTAÑA RESULTADOS CLOUD CON FILTROS Y BORRADO -->
                 <div id="section-results" class="space-y-4">
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-2 bg-slate-50 p-3 rounded-2xl border">
-                        <!-- Filtro por Curso -->
                         <select id="filter-grade" onchange="filterResults()" class="px-3 py-2 rounded-xl border text-sm bg-white">
                             <option value="">🎓 Todos los Cursos</option>
                             <option value="5º Primaria">5.º Primaria</option>
                             <option value="6º Primaria">6.º Primaria</option>
                         </select>
-                        <!-- Buscador por Alumno -->
                         <input type="text" id="filter-name" oninput="filterResults()" placeholder="🔍 Buscar alumno..." class="px-3 py-2 rounded-xl border text-sm bg-white w-full sm:w-auto">
-                        <button onclick="loadCloudResults()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs px-3 py-2 rounded-xl font-bold transition">
-                            🔄 Actualizar
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="loadCloudResults()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs px-3 py-2 rounded-xl font-bold transition">
+                                🔄 Actualizar
+                            </button>
+                            <button onclick="clearCloudResults()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs px-3 py-2 rounded-xl font-bold transition">
+                                🗑️ Vaciar Nube
+                            </button>
+                        </div>
                     </div>
 
                     <div id="results-table" class="overflow-x-auto text-center py-4">
@@ -192,7 +195,7 @@
         let currentQuestionIndex = 0;
         let studentAnswers = [];
         let studentInfo = {};
-        let allCloudResults = []; // Almacena todos los resultados para filtrar sin recargar
+        let allCloudResults = [];
 
         function initQuizSelector() {
             const select = document.getElementById('quiz-select');
@@ -377,7 +380,6 @@
             }
         }
 
-        // CARGAR RESULTADOS DESDE GOOGLE SHEETS
         function loadCloudResults() {
             const container = document.getElementById('results-table');
             container.innerHTML = `<p class="text-sm text-slate-500 py-4">⏳ Sincronizando notas desde la nube...</p>`;
@@ -394,11 +396,10 @@
                 });
         }
 
-        // PINTAR LA TABLA CON LOS FILTROS APLICADOS
         function renderTable(dataToRender) {
             const container = document.getElementById('results-table');
             if (!dataToRender || dataToRender.length === 0) {
-                container.innerHTML = `<p class="text-sm text-slate-400 py-4 text-center">No se encontraron resultados con los filtros seleccionados.</p>`;
+                container.innerHTML = `<p class="text-sm text-slate-400 py-4 text-center">No se encontraron resultados en la nube.</p>`;
                 return;
             }
 
@@ -409,7 +410,6 @@
             container.innerHTML = html + `</table>`;
         }
 
-        // FUNCIÓN DE FILTRADO EN TIEMPO REAL
         function filterResults() {
             const selectedGrade = document.getElementById('filter-grade').value;
             const searchText = document.getElementById('filter-name').value.toLowerCase();
@@ -421,6 +421,30 @@
             });
 
             renderTable(filtered);
+        }
+
+        // FUNCIÓN PARA VACIAR LA NUBE DIRECTAMENTE
+        function clearCloudResults() {
+            if (confirm("⚠️ ¿Estás seguro de que quieres BORRAR TODOS los resultados de la nube? Esta acción no se puede deshacer.")) {
+                const container = document.getElementById('results-table');
+                container.innerHTML = `<p class="text-sm text-slate-500 py-4">⏳ Borrando datos de Google Sheets...</p>`;
+
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({ action: "clear" })
+                })
+                .then(() => {
+                    alert("¡Registros de la nube borrados con éxito!");
+                    loadCloudResults();
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Hubo un error al intentar borrar los datos.");
+                    loadCloudResults();
+                });
+            }
         }
 
         function saveNewQuiz(e) {
