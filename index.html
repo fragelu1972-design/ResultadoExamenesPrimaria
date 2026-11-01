@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exámenes de Primaria</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .kid-font { font-family: 'Comic Neue', cursive; }
+    </style>
+</head>
+<body class="bg-indigo-50 min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-md p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <span class="text-3xl">🎒</span>
+            <h1 class="text-2xl font-bold kid-font tracking-wide">ColegioQuiz</h1>
+        </div>
+        <button onclick="toggleTeacherModal()" class="bg-indigo-700 hover:bg-indigo-800 px-4 py-2 rounded-xl text-sm font-semibold transition shadow">
+            🔑 Panel Profesor
+        </button>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="container mx-auto px-4 py-8 max-w-2xl flex-grow">
+
+        <!-- VISTA 1: REGISTRO DE ALUMNO -->
+        <div id="view-login" class="bg-white rounded-3xl shadow-xl p-8 border-4 border-indigo-200">
+            <div class="text-center mb-6">
+                <span class="text-5xl">🌟</span>
+                <h2 class="text-3xl font-bold kid-font text-indigo-600 mt-2">¡Bienvenido al Examen!</h2>
+                <p class="text-slate-500">Rellena tus datos para empezar</p>
+            </div>
+
+            <form onsubmit="startQuiz(event)" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Nombre y Apellidos:</label>
+                    <input type="text" id="student-name" required placeholder="Ej. Lucía Martínez" 
+                        class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none text-lg">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Curso:</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="border-2 border-slate-200 rounded-2xl p-4 text-center cursor-pointer hover:border-indigo-500 transition flex items-center justify-center space-x-2">
+                            <input type="radio" name="student-grade" value="5º Primaria" required class="accent-indigo-600 w-5 h-5">
+                            <span class="font-bold text-lg">5.º Primaria</span>
+                        </label>
+                        <label class="border-2 border-slate-200 rounded-2xl p-4 text-center cursor-pointer hover:border-indigo-500 transition flex items-center justify-center space-x-2">
+                            <input type="radio" name="student-grade" value="6º Primaria" required class="accent-indigo-600 w-5 h-5">
+                            <span class="font-bold text-lg">6.º Primaria</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Cuestionario:</label>
+                    <select id="quiz-select" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none text-lg bg-white">
+                        <option value="matematicas">📐 Matemáticas - Fracciones y Decimales</option>
+                        <option value="ciencias">🌍 Ciencias Naturales - El Ecosistema</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xl py-4 rounded-2xl shadow-lg transition transform active:scale-95">
+                    🚀 ¡Comenzar Examen!
+                </button>
+            </form>
+        </div>
+
+        <!-- VISTA 2: PREGUNTAS -->
+        <div id="view-quiz" class="hidden bg-white rounded-3xl shadow-xl p-8 border-4 border-indigo-200">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <span id="quiz-title-display" class="font-bold text-indigo-600 text-lg">Asignatura</span>
+                <span id="question-progress" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-sm">Pregunta 1 de 3</span>
+            </div>
+
+            <div id="question-container" class="mb-8"></div>
+
+            <div class="flex justify-between">
+                <button id="prev-btn" onclick="prevQuestion()" class="hidden bg-slate-200 hover:bg-slate-300 px-6 py-3 rounded-2xl font-bold transition">
+                    ⬅️ Anterior
+                </button>
+                <button id="next-btn" onclick="nextQuestion()" class="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold shadow transition">
+                    Siguiente ➡️
+                </button>
+            </div>
+        </div>
+
+        <!-- VISTA 3: RESULTADOS -->
+        <div id="view-results" class="hidden bg-white rounded-3xl shadow-xl p-8 border-4 border-emerald-200 text-center">
+            <span class="text-6xl">🏆</span>
+            <h2 class="text-3xl font-bold kid-font text-emerald-600 mt-2">¡Examen Finalizado!</h2>
+            <p id="result-student-name" class="text-slate-500 font-semibold text-lg mt-1"></p>
+
+            <div class="my-6 bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-6 inline-block">
+                <span class="text-sm uppercase tracking-wider text-emerald-700 font-bold block">Tu Nota Final</span>
+                <span id="final-score" class="text-5xl font-extrabold text-emerald-600">0 / 10</span>
+            </div>
+
+            <!-- Indicador de envío a Google Sheets -->
+            <div id="sync-status" class="mb-6 text-sm font-semibold text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                ⏳ Enviando nota a la hoja del profesor...
+            </div>
+
+            <div id="review-container" class="text-left space-y-4 mb-8"></div>
+
+            <button onclick="location.reload()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-2xl shadow transition">
+                🔄 Volver a Empezar
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODAL PROFESOR -->
+    <div id="teacher-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-2xl font-bold kid-font text-indigo-600">📊 Panel de Profesor</h3>
+                <button onclick="toggleTeacherModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+            </div>
+
+            <div id="teacher-login">
+                <p class="text-slate-600 mb-4">Introduce la contraseña para ver los datos locales:</p>
+                <input type="password" id="teacher-pass" placeholder="Contraseña: 1234" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 mb-4 focus:outline-none focus:border-indigo-500">
+                <button onclick="checkPass()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl">Entrar</button>
+            </div>
+
+            <div id="teacher-dash" class="hidden space-y-4">
+                <p class="text-sm text-slate-500">💡 Recuerda que todas las notas de todas las tablets se están enviando automáticamente a tu Google Drive.</p>
+                <div id="results-table" class="overflow-x-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LÓGICA DE LA APLICACIÓN -->
+    <script>
+        // =========================================================================
+        // ⚠️ PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT (Entre las dos comillas)
+        // Ejemplo: const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx.../exec";
+        // =========================================================================
+        const GOOGLE_SCRIPT_URL = "PEGA_AQUÍ_TU_URL_DE_GOOGLE_APPS_SCRIPT";
+
+
+        // BANCO DE PREGUNTAS
+        const quizData = {
+            matematicas: {
+                title: "📐 Matemáticas - Fracciones y Decimales",
+                questions: [
+                    { question: "¿Cuál de las siguientes fracciones es equivalente a 1/2?", options: ["2/4", "1/3", "3/5", "4/10"], correct: 0 },
+                    { question: "Si sumamos 3.5 y 2.2, ¿cuánto obtenemos?", options: ["5.2", "5.7", "6.0", "4.7"], correct: 1 },
+                    { question: "¿Qué número representa el numerador en la fracción 3/4?", options: ["El número de abajo", "El total de partes", "El número de arriba", "El resto"], correct: 2 }
+                ]
+            },
+            ciencias: {
+                title: "🌍 Ciencias Naturales - El Ecosistema",
+                questions: [
+                    { question: "¿Cómo se llaman los seres vivos que fabrican su propio alimento?", options: ["Consumidores", "Descomponedores", "Productores", "Carnívoros"], correct: 2 },
+                    { question: "¿Qué elemento es fundamental para la fotosíntesis además del agua?", options: ["Luz del Sol", "Frío nocturno", "Sal", "Arena"], correct: 0 }
+                ]
+            }
+        };
+
+        let currentQuiz = null;
+        let currentQuestionIndex = 0;
+        let studentAnswers = [];
+        let studentInfo = {};
+
+        function startQuiz(e) {
+            e.preventDefault();
+            studentInfo = {
+                name: document.getElementById('student-name').value,
+                grade: document.querySelector('input[name="student-grade"]:checked').value,
+                quizKey: document.getElementById('quiz-select').value
+            };
+            currentQuiz = quizData[studentInfo.quizKey];
+            studentAnswers = new Array(currentQuiz.questions.length).fill(null);
+            currentQuestionIndex = 0;
+
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('view-quiz').classList.remove('hidden');
+            document.getElementById('quiz-title-display').innerText = currentQuiz.title;
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = currentQuiz.questions[currentQuestionIndex];
+            document.getElementById('question-progress').innerText = `Pregunta ${currentQuestionIndex + 1} de ${currentQuiz.questions.length}`;
+            
+            let html = `<h3 class="text-xl font-bold text-slate-800 mb-4">${currentQuestionIndex + 1}. ${q.question}</h3><div class="space-y-3">`;
+            q.options.forEach((opt, idx) => {
+                const isSelected = studentAnswers[currentQuestionIndex] === idx;
+                html += `
+                    <label class="flex items-center p-4 rounded-2xl border-2 cursor-pointer transition ${isSelected ? 'border-indigo-600 bg-indigo-50 font-bold' : 'border-slate-200 hover:border-indigo-300'}">
+                        <input type="radio" name="opt" value="${idx}" ${isSelected ? 'checked' : ''} onclick="studentAnswers[${currentQuestionIndex}] = ${idx}" class="w-5 h-5 accent-indigo-600 mr-3">
+                        <span class="text-lg">${opt}</span>
+                    </label>
+                `;
+            });
+            html += `</div>`;
+            document.getElementById('question-container').innerHTML = html;
+
+            document.getElementById('prev-btn').classList.toggle('hidden', currentQuestionIndex === 0);
+            const nextBtn = document.getElementById('next-btn');
+            if (currentQuestionIndex === currentQuiz.questions.length - 1) {
+                nextBtn.innerText = "✅ Entregar Examen";
+                nextBtn.onclick = finishQuiz;
+            } else {
+                nextBtn.innerText = "Siguiente ➡️";
+                nextBtn.onclick = () => {
+                    if (studentAnswers[currentQuestionIndex] === null) return alert("Selecciona una respuesta.");
+                    currentQuestionIndex++;
+                    renderQuestion();
+                };
+            }
+        }
+
+        function prevQuestion() {
+            currentQuestionIndex--;
+            renderQuestion();
+        }
+
+        function finishQuiz() {
+            if (studentAnswers[currentQuestionIndex] === null) return alert("Selecciona una respuesta.");
+            
+            let correct = 0;
+            let reviewHtml = "";
+            currentQuiz.questions.forEach((q, idx) => {
+                const isCorrect = studentAnswers[idx] === q.correct;
+                if (isCorrect) correct++;
+                reviewHtml += `
+                    <div class="p-4 rounded-2xl border-2 ${isCorrect ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}">
+                        <p class="font-bold text-slate-800">${q.question}</p>
+                        <p class="text-sm mt-1">Tu respuesta: <b>${q.options[studentAnswers[idx]]}</b> ${isCorrect ? '✅' : '❌'}</p>
+                        ${!isCorrect ? `<p class="text-sm text-emerald-700">Respuesta correcta: <b>${q.options[q.correct]}</b></p>` : ''}
+                    </div>
+                `;
+            });
+
+            const score = Math.round((correct / currentQuiz.questions.length) * 10 * 10) / 10;
+            document.getElementById('result-student-name').innerText = `${studentInfo.name} (${studentInfo.grade})`;
+            document.getElementById('final-score').innerText = `${score} / 10`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+
+            // Guardar en la tablet localmente (Copia de seguridad)
+            const results = JSON.parse(localStorage.getItem('quiz_results') || '[]');
+            results.push({ name: studentInfo.name, grade: studentInfo.grade, quiz: currentQuiz.title, score, date: new Date().toLocaleDateString() });
+            localStorage.setItem('quiz_results', JSON.stringify(results));
+
+            document.getElementById('view-quiz').classList.add('hidden');
+            document.getElementById('view-results').classList.remove('hidden');
+
+            // --- ENVÍO AUTOMÁTICO A GOOGLE SHEETS ---
+            sendToGoogleSheets({
+                date: new Date().toLocaleString('es-ES'),
+                name: studentInfo.name,
+                grade: studentInfo.grade,
+                quiz: currentQuiz.title,
+                score: score
+            });
+        }
+
+        function sendToGoogleSheets(data) {
+            const syncStatus = document.getElementById('sync-status');
+            
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbxHiomfbcbYnIkgbCawJkA6wizmNL_qbE3q35v2BFI4B-PSa5r9aCvph3P92lRg3jEcPA/exec") {
+                syncStatus.className = "mb-6 text-sm font-semibold text-slate-500 bg-slate-100 p-3 rounded-xl";
+                syncStatus.innerText = "ℹ️ Modo local (No has configurado aún la URL de Google Sheets).";
+                return;
+            }
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            })
+            .then(() => {
+                syncStatus.className = "mb-6 text-sm font-semibold text-emerald-700 bg-emerald-100 p-3 rounded-xl border border-emerald-300";
+                syncStatus.innerText = "✅ ¡Nota enviada con éxito a la hoja del profesor!";
+            })
+            .catch(error => {
+                console.error("Error al enviar a Google Sheets:", error);
+                syncStatus.className = "mb-6 text-sm font-semibold text-rose-700 bg-rose-100 p-3 rounded-xl border border-rose-300";
+                syncStatus.innerText = "⚠️ No se pudo enviar a la nube (Comprueba la conexión). Se guardó en la tablet.";
+            });
+        }
+
+        function toggleTeacherModal() {
+            document.getElementById('teacher-modal').classList.toggle('hidden');
+        }
+
+        function checkPass() {
+            if (document.getElementById('teacher-pass').value === "1234") {
+                document.getElementById('teacher-login').classList.add('hidden');
+                document.getElementById('teacher-dash').classList.remove('hidden');
+                loadTable();
+            } else {
+                alert("Contraseña incorrecta (Usa: 1234)");
+            }
+        }
+
+        function loadTable() {
+            const results = JSON.parse(localStorage.getItem('quiz_results') || '[]');
+            if(!results.length) {
+                document.getElementById('results-table').innerHTML = `<p class="text-sm text-slate-400">Sin datos locales en esta tablet.</p>`;
+                return;
+            }
+            let html = `<table class="w-full text-left text-sm"><tr class="bg-slate-100"><th class="p-2">Alumno</th><th class="p-2">Curso</th><th class="p-2">Nota</th></tr>`;
+            results.forEach(r => html += `<tr class="border-b"><td class="p-2 font-bold">${r.name}</td><td class="p-2">${r.grade}</td><td class="p-2 text-indigo-600 font-bold">${r.score}</td></tr>`);
+            document.getElementById('results-table').innerHTML = html + `</table>`;
+        }
+    </script>
+</body>
+</html>
