@@ -158,16 +158,23 @@
                     </div>
                 </div>
 
-                <!-- PESTAÑA CREAR EXAMEN -->
+                <!-- PESTAÑA CREAR / EDITAR EXAMEN -->
                 <div id="section-creator" class="hidden space-y-4">
-                    <h4 class="font-bold text-slate-700">Crear Examen de 10 Preguntas (Se subirá a la nube)</h4>
+                    <div class="flex justify-between items-center">
+                        <h4 id="creator-section-title" class="font-bold text-slate-700">Crear Examen Personalizado</h4>
+                        <button type="button" id="cancel-edit-btn" onclick="cancelEdit()" class="hidden text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded-xl font-bold transition">❌ Cancelar Edición</button>
+                    </div>
                     <form onsubmit="saveNewQuiz(event)" class="space-y-4">
+                        <input type="hidden" id="editing-quiz-key" value="">
                         <div>
                             <label class="block text-xs font-bold text-slate-600 mb-1">Título del Examen:</label>
                             <input type="text" id="new-quiz-title" required class="w-full px-3 py-2 rounded-xl border-2 border-slate-200 text-sm">
                         </div>
                         <div id="questions-form-container" class="space-y-4 max-h-[50vh] overflow-y-auto pr-2"></div>
-                        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-sm shadow-md">
+                        <button type="button" onclick="addQuestionField()" class="w-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold py-3 rounded-xl text-sm transition border border-indigo-200">
+                            ➕ Añadir otra pregunta
+                        </button>
+                        <button type="submit" id="save-quiz-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-sm shadow-md">
                             💾 Subir Examen a la Nube
                         </button>
                     </form>
@@ -176,7 +183,7 @@
                 <!-- PESTAÑA GESTIONAR / ELIMINAR EXÁMENES -->
                 <div id="section-manage-exams" class="hidden space-y-4">
                     <h4 class="font-bold text-slate-700">Listado de Exámenes Activos</h4>
-                    <p class="text-xs text-slate-500">Aquí puedes ver los exámenes disponibles y eliminar los que ya no necesites.</p>
+                    <p class="text-xs text-slate-500">Aquí puedes ver los exámenes disponibles, modificarlos o eliminarlos.</p>
                     <div id="manage-exams-list" class="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
                         <!-- Se llena mediante JavaScript -->
                     </div>
@@ -207,7 +214,7 @@
         // AL CARGAR LA PÁGINA, DESCARGA LOS EXÁMENES DESDE LA NUBE
         window.onload = function() {
             loadQuizzesFromCloud();
-            buildCreatorForm();
+            initCreatorForm();
         };
 
         function loadQuizzesFromCloud() {
@@ -238,33 +245,100 @@
             }
         }
 
-        function buildCreatorForm() {
+        function initCreatorForm() {
+            document.getElementById('editing-quiz-key').value = "";
+            document.getElementById('new-quiz-title').value = "";
+            document.getElementById('creator-section-title').innerText = "Crear Examen Personalizado";
+            document.getElementById('save-quiz-btn').innerText = "💾 Subir Examen a la Nube";
+            document.getElementById('cancel-edit-btn').classList.add('hidden');
+            
+            document.getElementById('questions-form-container').innerHTML = "";
+            addQuestionField();
+            addQuestionField();
+            addQuestionField();
+        }
+
+        function addQuestionField(qData = null) {
             const container = document.getElementById('questions-form-container');
-            let html = "";
-            for (let i = 1; i <= 10; i++) {
-                html += `
-                    <div class="bg-slate-50 p-4 rounded-2xl border space-y-3">
-                        <h5 class="font-bold text-sm text-indigo-600">Pregunta ${i}</h5>
-                        <input type="text" id="q${i}-text" placeholder="Enunciado..." ${i === 1 ? 'required' : ''} class="w-full px-3 py-2 rounded-xl border text-sm bg-white">
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" id="q${i}-opt0" placeholder="Opción A" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
-                            <input type="text" id="q${i}-opt1" placeholder="Opción B" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
-                            <input type="text" id="q${i}-opt2" placeholder="Opción C" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
-                            <input type="text" id="q${i}-opt3" placeholder="Opción D" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-1">Respuesta correcta:</label>
-                            <select id="q${i}-correct" class="w-full px-3 py-2 rounded-xl border text-sm bg-white">
-                                <option value="0">Opción A</option>
-                                <option value="1">Opción B</option>
-                                <option value="2">Opción C</option>
-                                <option value="3">Opción D</option>
-                            </select>
-                        </div>
-                    </div>
-                `;
+            const div = document.createElement('div');
+            div.className = "question-block bg-slate-50 p-4 rounded-2xl border space-y-3 relative";
+            
+            const qText = qData ? qData.question : "";
+            const opt0 = qData ? qData.options[0] : "";
+            const opt1 = qData ? qData.options[1] : "";
+            const opt2 = qData ? qData.options[2] : "";
+            const opt3 = qData ? qData.options[3] : "";
+            const correctVal = qData ? qData.correct : 0;
+
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <h5 class="font-bold text-sm text-indigo-600 question-number">Pregunta</h5>
+                    <button type="button" onclick="removeQuestionField(this)" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-2 py-1 bg-rose-50 rounded-lg border border-rose-200">🗑️ Quitar</button>
+                </div>
+                <input type="text" placeholder="Enunciado de la pregunta..." value="${qText}" required class="q-text w-full px-3 py-2 rounded-xl border text-sm bg-white">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" placeholder="Opción A" value="${opt0}" required class="q-opt-0 w-full px-3 py-2 rounded-xl border text-sm bg-white">
+                    <input type="text" placeholder="Opción B" value="${opt1}" required class="q-opt-1 w-full px-3 py-2 rounded-xl border text-sm bg-white">
+                    <input type="text" placeholder="Opción C" value="${opt2}" required class="q-opt-2 w-full px-3 py-2 rounded-xl border text-sm bg-white">
+                    <input type="text" placeholder="Opción D" value="${opt3}" required class="q-opt-3 w-full px-3 py-2 rounded-xl border text-sm bg-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Respuesta correcta:</label>
+                    <select class="q-correct w-full px-3 py-2 rounded-xl border text-sm bg-white">
+                        <option value="0" ${correctVal === 0 ? 'selected' : ''}>Opción A</option>
+                        <option value="1" ${correctVal === 1 ? 'selected' : ''}>Opción B</option>
+                        <option value="2" ${correctVal === 2 ? 'selected' : ''}>Opción C</option>
+                        <option value="3" ${correctVal === 3 ? 'selected' : ''}>Opción D</option>
+                    </select>
+                </div>
+            `;
+            container.appendChild(div);
+            updateQuestionNumbers();
+        }
+
+        function removeQuestionField(btn) {
+            const blocks = document.querySelectorAll('.question-block');
+            if (blocks.length <= 1) {
+                alert("El examen debe tener al menos una pregunta.");
+                return;
             }
-            container.innerHTML = html;
+            btn.closest('.question-block').remove();
+            updateQuestionNumbers();
+        }
+
+        function updateQuestionNumbers() {
+            const blocks = document.querySelectorAll('.question-block');
+            blocks.forEach((block, index) => {
+                block.querySelector('.question-number').innerText = `Pregunta ${index + 1}`;
+            });
+        }
+
+        function editQuiz(key) {
+            const quiz = quizData[key];
+            if (!quiz) return;
+
+            // Rellenar datos principales en el formulario de creador
+            document.getElementById('editing-quiz-key').value = key;
+            document.getElementById('new-quiz-title').value = quiz.title;
+            document.getElementById('creator-section-title').innerText = `Editando: ${quiz.title}`;
+            document.getElementById('save-quiz-btn').innerText = "💾 Guardar Cambios en la Nube";
+            document.getElementById('cancel-edit-btn').classList.remove('hidden');
+
+            // Limpiar y cargar las preguntas existentes
+            const container = document.getElementById('questions-form-container');
+            container.innerHTML = "";
+            if (quiz.questions && quiz.questions.length > 0) {
+                quiz.questions.forEach(q => addQuestionField(q));
+            } else {
+                addQuestionField();
+            }
+
+            // Cambiar a la pestaña de creador
+            switchTab('creator');
+        }
+
+        function cancelEdit() {
+            initCreatorForm();
         }
 
         function startQuiz(e) {
@@ -436,9 +510,14 @@
                             <h5 class="font-bold text-sm text-slate-800">${quiz.title}</h5>
                             <p class="text-xs text-slate-500">${quiz.questions ? quiz.questions.length : 0} preguntas (ID: ${key})</p>
                         </div>
-                        <button onclick="deleteQuiz('${key}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl text-xs font-bold transition">
-                            🗑️ Eliminar
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="editQuiz('${key}')" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-2 rounded-xl text-xs font-bold transition">
+                                ✏️ Editar
+                            </button>
+                            <button onclick="deleteQuiz('${key}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl text-xs font-bold transition">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
                     </div>
                 `;
             });
@@ -538,34 +617,38 @@
             }
         }
 
-        // GUARDAR EXAMEN NUEVO DIRECTAMENTE EN LA NUBE
+        // GUARDAR O ACTUALIZAR EXAMEN EN LA NUBE
         function saveNewQuiz(e) {
             e.preventDefault();
             const title = document.getElementById('new-quiz-title').value;
+            const editingKey = document.getElementById('editing-quiz-key').value;
+            const blocks = document.querySelectorAll('.question-block');
             let questionsList = [];
 
-            for (let i = 1; i <= 10; i++) {
-                const text = document.getElementById(`q${i}-text`).value;
+            blocks.forEach(block => {
+                const text = block.querySelector('.q-text').value;
+                const opt0 = block.querySelector('.q-opt-0').value;
+                const opt1 = block.querySelector('.q-opt-1').value;
+                const opt2 = block.querySelector('.q-opt-2').value;
+                const opt3 = block.querySelector('.q-opt-3').value;
+                const correct = parseInt(block.querySelector('.q-correct').value);
+
                 if (text.trim() !== "") {
                     questionsList.push({
                         question: text,
-                        options: [
-                            document.getElementById(`q${i}-opt0`).value,
-                            document.getElementById(`q${i}-opt1`).value,
-                            document.getElementById(`q${i}-opt2`).value,
-                            document.getElementById(`q${i}-opt3`).value
-                        ],
-                        correct: parseInt(document.getElementById(`q${i}-correct`).value)
+                        options: [opt0, opt1, opt2, opt3],
+                        correct: correct
                     });
                 }
-            }
+            });
 
             if (questionsList.length === 0) {
-                alert("Debes rellenar al menos la primera pregunta.");
+                alert("Debes rellenar al menos una pregunta.");
                 return;
             }
 
-            const quizKey = 'examen_' + Date.now();
+            // Si estamos editando usamos la clave existente, si es nuevo generamos una clave basada en la fecha actual
+            const quizKey = editingKey ? editingKey : ('examen_' + Date.now());
             const newQuizObj = { title, questions: questionsList };
 
             // Enviar a la nube (Google Sheets)
@@ -580,17 +663,17 @@
                 })
             })
             .then(() => {
-                alert(`¡Examen "${title}" guardado y subido a la nube con éxito! Ya aparecerá en las tablets.`);
+                const actionMsg = editingKey ? "actualizado" : "guardado y subido";
+                alert(`¡Examen "${title}" ${actionMsg} con éxito!`);
                 quizData[quizKey] = newQuizObj;
                 initQuizSelector();
                 renderManageExamsList();
-                document.getElementById('new-quiz-title').value = "";
-                buildCreatorForm();
+                initCreatorForm();
                 switchTab('results');
             })
             .catch(err => {
                 console.error(err);
-                alert("Hubo un error al subir el examen a la nube.");
+                alert("Hubo un error al guardar el examen en la nube.");
             });
         }
     </script>
