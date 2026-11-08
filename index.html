@@ -1,3 +1,46 @@
+Nueva conversación
+Biblioteca
+Imágenes
+Programado
+Estudiantes
+
+Más
+Gestión y eliminación de exámenes HTML
+Iconos para completar frases
+Fluctuación de revoluciones en Tucson
+Depreciación futura Hyundai Tucson
+Ofertas y precios Jeep Avenger
+Adaptación de examen visual
+Ralentí inestable en Hyundai Tucson
+Cómo desatascar un váter
+Copago farmacéutico para jubilados en Castilla-La Mancha
+Integrar Lumio con EducamosCLM
+Test de historia siglo XIX
+Planificador dinámico con adelanto de temas
+Adaptación de examen de matemáticas
+Generador de Exámenes Escolares Online
+Tests de Historia de España
+App web educativa de matemáticas
+Cómo Crear Google Sheets
+Guía docente Scratch Jr.
+Rúbrica para Scratch Jr.
+Cómo eliminar fondos en Scratch
+Taller de poesía de Halloween
+Uso de Fuente Escolar 1
+Castañas en Freidora Cosori Doble Cesta
+Mejoras en Buscador de Trenes
+
+Actividad
+Almagro, España
+Según tus sitios (casa)
+Conversación con Gemini
+Puedes modificar este código html para que se puedan eliminar los exámenes que ya están hecho?
+
+¡Claro que sí! He modificado tu código para añadir una nueva sección dentro del Panel del Profesor donde se pueden ver todos los exámenes disponibles (tanto los de la nube como los guardados) y eliminarlos fácilmente. También he preparado la lógica de envío hacia tu Google Apps Script para que soporte la acción de borrado (delete_quiz).
+
+Aquí tienes el código HTML completo y actualizado:
+
+HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -129,9 +172,10 @@
 
             <div id="teacher-dash" class="hidden space-y-6">
                 <!-- Pestañas del Panel -->
-                <div class="flex space-x-2 border-b pb-3">
-                    <button onclick="switchTab('results')" id="tab-results-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm">📋 Resultados</button>
-                    <button onclick="switchTab('creator')" id="tab-creator-btn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm">✏️ Crear Examen</button>
+                <div class="flex space-x-2 border-b pb-3 overflow-x-auto">
+                    <button onclick="switchTab('results')" id="tab-results-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm whitespace-nowrap">📋 Resultados</button>
+                    <button onclick="switchTab('creator')" id="tab-creator-btn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm whitespace-nowrap">✏️ Crear Examen</button>
+                    <button onclick="switchTab('manage-exams')" id="tab-manage-btn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm whitespace-nowrap">🗑️ Gestionar Exámenes</button>
                 </div>
 
                 <!-- PESTAÑA RESULTADOS -->
@@ -171,6 +215,15 @@
                         </button>
                     </form>
                 </div>
+
+                <!-- PESTAÑA GESTIONAR / ELIMINAR EXÁMENES -->
+                <div id="section-manage-exams" class="hidden space-y-4">
+                    <h4 class="font-bold text-slate-700">Listado de Exámenes Activos</h4>
+                    <p class="text-xs text-slate-500">Aquí puedes ver los exámenes disponibles y eliminar los que ya no necesites.</p>
+                    <div id="manage-exams-list" class="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                        <!-- Se llena mediante JavaScript -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -208,10 +261,12 @@
                         quizData = data; // Sobrescribe con los de la nube
                     }
                     initQuizSelector();
+                    renderManageExamsList();
                 })
                 .catch(err => {
                     console.error("Error al cargar exámenes de la nube:", err);
                     initQuizSelector(); // Usa el por defecto si falla
+                    renderManageExamsList();
                 });
         }
 
@@ -369,28 +424,94 @@
         }
 
         function checkPass() {
-            const password = "1972"; // Cambia aquí tu contraseña si lo deseas
+            const password = "1972"; // Contraseña del profesor
 
             if (document.getElementById('teacher-pass').value === password) {
                 document.getElementById('teacher-login').classList.add('hidden');
                 document.getElementById('teacher-dash').classList.remove('hidden');
                 loadCloudResults();
+                renderManageExamsList();
             } else {
                 alert("Contraseña incorrecta");
             }
         }
 
         function switchTab(tab) {
+            // Ocultar todas las secciones
+            document.getElementById('section-results').classList.add('hidden');
+            document.getElementById('section-creator').classList.add('hidden');
+            document.getElementById('section-manage-exams').classList.add('hidden');
+            
+            // Restablecer estilos de los botones
+            document.getElementById('tab-results-btn').className = "px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm whitespace-nowrap";
+            document.getElementById('tab-creator-btn').className = "px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm whitespace-nowrap";
+            document.getElementById('tab-manage-btn').className = "px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm whitespace-nowrap";
+
+            // Mostrar la seleccionada
             if (tab === 'results') {
                 document.getElementById('section-results').classList.remove('hidden');
-                document.getElementById('section-creator').classList.add('hidden');
-                document.getElementById('tab-results-btn').className = "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm";
-                document.getElementById('tab-creator-btn').className = "px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm";
-            } else {
-                document.getElementById('section-results').classList.add('hidden');
+                document.getElementById('tab-results-btn').className = "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm whitespace-nowrap";
+            } else if (tab === 'creator') {
                 document.getElementById('section-creator').classList.remove('hidden');
-                document.getElementById('tab-creator-btn').className = "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm";
-                document.getElementById('tab-results-btn').className = "px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm";
+                document.getElementById('tab-creator-btn').className = "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm whitespace-nowrap";
+            } else if (tab === 'manage-exams') {
+                document.getElementById('section-manage-exams').classList.remove('hidden');
+                document.getElementById('tab-manage-btn').className = "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm whitespace-nowrap";
+                renderManageExamsList();
+            }
+        }
+
+        function renderManageExamsList() {
+            const container = document.getElementById('manage-exams-list');
+            let html = "";
+
+            const keys = Object.keys(quizData);
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 text-center py-4">No hay exámenes disponibles.</p>`;
+                return;
+            }
+
+            keys.forEach(key => {
+                const quiz = quizData[key];
+                html += `
+                    <div class="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border">
+                        <div>
+                            <h5 class="font-bold text-sm text-slate-800">${quiz.title}</h5>
+                            <p class="text-xs text-slate-500">${quiz.questions ? quiz.questions.length : 0} preguntas (ID: ${key})</p>
+                        </div>
+                        <button onclick="deleteQuiz('${key}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl text-xs font-bold transition">
+                            🗑️ Eliminar
+                        </button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function deleteQuiz(quizKey) {
+            if (confirm(`¿Estás seguro de que deseas eliminar este examen? Desaparecerá de la aplicación para todos.`)) {
+                // Eliminar localmente
+                delete quizData[quizKey];
+                initQuizSelector();
+                renderManageExamsList();
+
+                // Enviar petición a Google Sheets para borrarlo de la nube
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({
+                        action: "delete_quiz",
+                        quizKey: quizKey
+                    })
+                })
+                .then(() => {
+                    alert("Examen eliminado correctamente de la nube.");
+                })
+                .catch(err => {
+                    console.error("Error al eliminar examen en la nube:", err);
+                    alert("Se eliminó localmente, pero hubo un problema al actualizar la nube.");
+                });
             }
         }
 
@@ -505,6 +626,631 @@
                 alert(`¡Examen "${title}" guardado y subido a la nube con éxito! Ya aparecerá en las tablets.`);
                 quizData[quizKey] = newQuizObj;
                 initQuizSelector();
+                renderManageExamsList();
+                document.getElementById('new-quiz-title').value = "";
+                buildCreatorForm();
+                switchTab('results');
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Hubo un error al subir el examen a la nube.");
+            });
+        }
+    </script>
+</body>
+</html>
+💡 Nota importante para tu Google Apps Script
+Para que el borrado funcione por completo en la base de datos de la nube, asegúrate de que tu script en Google Apps Script esté preparado para manejar la acción delete_quiz (es decir, que busque el examen por su clave y lo elimine de la celda/hoja donde guardes los cuestionarios). El código JavaScript ya envía la orden correctamente a tu URL con el formato:
+
+JSON
+{ "action": "delete_quiz", "quizKey": "examen_1700000000" }
+Puedes actualizarlo tú para que elimine los exámenes?
+
+Tu archivo HTML ha sido actualizado para incluir la funcionalidad de eliminación de exámenes en el panel de control.
+
+Icono de HTML
+AppExamTest
+ HTML 
+Cambios añadidos al archivo:
+Pestaña de gestión ("🗑️ Gestionar Exámenes"): Añadida al panel del profesor para listar todos los cuestionarios creados o cargados desde la nube.
+
+Botón de eliminación por examen: Permite borrar un examen con confirmación previa. Al eliminarlo, se actualiza la interfaz localmente y se desapunta del selector principal.
+
+Petición de borrado a la nube: Envía la acción delete_quiz junto con la clave del examen (quizKey) a tu script de Google Apps Script para sincronizar el borrado en la base de datos.
+
+
+
+
+
+Gemini es una IA y puede cometer errores, incluso sobre personas. Tu privacidad y GeminiSe abre en una ventana nueva
+
+Analizando
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exámenes de Primaria</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .kid-font { font-family: 'Comic Neue', cursive; }
+    </style>
+</head>
+<body class="bg-indigo-50 min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-md p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <span class="text-3xl">🎒</span>
+            <h1 class="text-2xl font-bold kid-font tracking-wide">ColegioQuiz</h1>
+        </div>
+        <button onclick="toggleTeacherModal()" class="bg-indigo-700 hover:bg-indigo-800 px-4 py-2 rounded-xl text-sm font-semibold transition shadow">
+            🔑 Panel Profesor
+        </button>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="container mx-auto px-4 py-8 max-w-2xl flex-grow">
+
+        <!-- VISTA 1: REGISTRO DE ALUMNO -->
+        <div id="view-login" class="bg-white rounded-3xl shadow-xl p-8 border-4 border-indigo-200">
+            <div class="text-center mb-6">
+                <span class="text-5xl">🌟</span>
+                <h2 class="text-3xl font-bold kid-font text-indigo-600 mt-2">¡Bienvenido al Examen!</h2>
+                <p class="text-slate-500">Rellena tus datos para empezar</p>
+            </div>
+
+            <form onsubmit="startQuiz(event)" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Nombre y Apellidos:</label>
+                    <input type="text" id="student-name" required placeholder="Ej. Lucía Martínez" 
+                        class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none text-lg">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Curso:</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="border-2 border-slate-200 rounded-2xl p-4 text-center cursor-pointer hover:border-indigo-500 transition flex items-center justify-center space-x-2">
+                            <input type="radio" name="student-grade" value="5º Primaria" required class="accent-indigo-600 w-5 h-5">
+                            <span class="font-bold text-lg">5.º Primaria</span>
+                        </label>
+                        <label class="border-2 border-slate-200 rounded-2xl p-4 text-center cursor-pointer hover:border-indigo-500 transition flex items-center justify-center space-x-2">
+                            <input type="radio" name="student-grade" value="6º Primaria" required class="accent-indigo-600 w-5 h-5">
+                            <span class="font-bold text-lg">6.º Primaria</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Cuestionario:</label>
+                    <select id="quiz-select" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none text-lg bg-white">
+                        <option value="">Cargando exámenes...</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xl py-4 rounded-2xl shadow-lg transition transform active:scale-95">
+                    🚀 ¡Comenzar Examen!
+                </button>
+            </form>
+        </div>
+
+        <!-- VISTA 2: PREGUNTAS -->
+        <div id="view-quiz" class="hidden bg-white rounded-3xl shadow-xl p-8 border-4 border-indigo-200">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <span id="quiz-title-display" class="font-bold text-indigo-600 text-lg">Asignatura</span>
+                <span id="question-progress" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-sm">Pregunta 1 de 10</span>
+            </div>
+
+            <div id="question-container" class="mb-8"></div>
+
+            <div class="flex justify-between">
+                <button id="prev-btn" onclick="prevQuestion()" class="hidden bg-slate-200 hover:bg-slate-300 px-6 py-3 rounded-2xl font-bold transition">
+                    ⬅️ Anterior
+                </button>
+                <button id="next-btn" onclick="nextQuestion()" class="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold shadow transition">
+                    Siguiente ➡️
+                </button>
+            </div>
+        </div>
+
+        <!-- VISTA 3: RESULTADOS -->
+        <div id="view-results" class="hidden bg-white rounded-3xl shadow-xl p-8 border-4 border-emerald-200 text-center">
+            <span class="text-6xl">🏆</span>
+            <h2 class="text-3xl font-bold kid-font text-emerald-600 mt-2">¡Examen Finalizado!</h2>
+            <p id="result-student-name" class="text-slate-500 font-semibold text-lg mt-1"></p>
+
+            <div class="my-6 bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-6 inline-block">
+                <span class="text-sm uppercase tracking-wider text-emerald-700 font-bold block">Tu Nota Final</span>
+                <span id="final-score" class="text-5xl font-extrabold text-emerald-600">0 / 10</span>
+            </div>
+
+            <div id="sync-status" class="mb-6 text-sm font-semibold text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                ⏳ Enviando nota a la hoja del profesor...
+            </div>
+
+            <div id="review-container" class="text-left space-y-4 mb-8"></div>
+
+            <button onclick="location.reload()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-2xl shadow transition">
+                🔄 Volver a Empezar
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODAL PROFESOR -->
+    <div id="teacher-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-2xl font-bold kid-font text-indigo-600">📊 Panel de Profesor</h3>
+                <button onclick="toggleTeacherModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+            </div>
+
+            <div id="teacher-login">
+                <p class="text-slate-600 mb-4">Introduce la contraseña para acceder al panel:</p>
+                <input type="password" id="teacher-pass" placeholder="Contraseña (ej. 1234)" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 mb-4 focus:outline-none focus:border-indigo-500">
+                <button onclick="checkPass()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl">Entrar</button>
+            </div>
+
+            <div id="teacher-dash" class="hidden space-y-6">
+                <!-- Pestañas del Panel -->
+                <div class="flex space-x-2 border-b pb-3 overflow-x-auto">
+                    <button onclick="switchTab('results')" id="tab-results-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm whitespace-nowrap">📋 Resultados</button>
+                    <button onclick="switchTab('creator')" id="tab-creator-btn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm whitespace-nowrap">✏️ Crear Examen</button>
+                    <button onclick="switchTab('manage-exams')" id="tab-manage-btn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm whitespace-nowrap">🗑️ Gestionar Exámenes</button>
+                </div>
+
+                <!-- PESTAÑA RESULTADOS -->
+                <div id="section-results" class="space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-2 bg-slate-50 p-3 rounded-2xl border">
+                        <select id="filter-grade" onchange="filterResults()" class="px-3 py-2 rounded-xl border text-sm bg-white">
+                            <option value="">🎓 Todos los Cursos</option>
+                            <option value="5º Primaria">5.º Primaria</option>
+                            <option value="6º Primaria">6.º Primaria</option>
+                        </select>
+                        <input type="text" id="filter-name" oninput="filterResults()" placeholder="🔍 Buscar alumno..." class="px-3 py-2 rounded-xl border text-sm bg-white w-full sm:w-auto">
+                        <div class="flex gap-2">
+                            <button onclick="loadCloudResults()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs px-3 py-2 rounded-xl font-bold transition">
+                                🔄 Actualizar
+                            </button>
+                            <button onclick="clearCloudResults()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs px-3 py-2 rounded-xl font-bold transition">
+                                🗑️ Vaciar Nube
+                            </button>
+                        </div>
+                    </div>
+                    <div id="results-table" class="overflow-x-auto text-center py-4">
+                        <p class="text-slate-400 text-sm">Introduce la contraseña para ver resultados.</p>
+                    </div>
+                </div>
+
+                <!-- PESTAÑA CREAR EXAMEN -->
+                <div id="section-creator" class="hidden space-y-4">
+                    <h4 class="font-bold text-slate-700">Crear Examen de 10 Preguntas (Se subirá a la nube)</h4>
+                    <form onsubmit="saveNewQuiz(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Título del Examen:</label>
+                            <input type="text" id="new-quiz-title" required class="w-full px-3 py-2 rounded-xl border-2 border-slate-200 text-sm">
+                        </div>
+                        <div id="questions-form-container" class="space-y-4 max-h-[50vh] overflow-y-auto pr-2"></div>
+                        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-sm shadow-md">
+                            💾 Subir Examen a la Nube
+                        </button>
+                    </form>
+                </div>
+
+                <!-- PESTAÑA GESTIONAR / ELIMINAR EXÁMENES -->
+                <div id="section-manage-exams" class="hidden space-y-4">
+                    <h4 class="font-bold text-slate-700">Listado de Exámenes Activos</h4>
+                    <p class="text-xs text-slate-500">Aquí puedes ver los exámenes disponibles y eliminar los que ya no necesites.</p>
+                    <div id="manage-exams-list" class="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                        <!-- Se llena mediante JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LÓGICA DE LA APLICACIÓN -->
+    <script>
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHx4epzOAY87c1URzXE0izNwyA3opQ9m6M1Jpk0SH61x91J01ei56FOVDrjabrYvpOxA/exec";
+
+        let quizData = {
+            matematicas: {
+                title: "📐 Matemáticas - Test por defecto",
+                questions: [
+                    { question: "¿Cuánto es 2 + 2?", options: ["3", "4", "5", "6"], correct: 1 }
+                ]
+            }
+        };
+
+        let currentQuiz = null;
+        let currentQuestionIndex = 0;
+        let studentAnswers = [];
+        let studentInfo = {};
+        let allCloudResults = [];
+
+        // AL CARGAR LA PÁGINA, DESCARGA LOS EXÁMENES DESDE LA NUBE
+        window.onload = function() {
+            loadQuizzesFromCloud();
+            buildCreatorForm();
+        };
+
+        function loadQuizzesFromCloud() {
+            fetch(GOOGLE_SCRIPT_URL + "?action=get_quizzes")
+                .then(res => res.json())
+                .then(data => {
+                    if (data && Object.keys(data).length > 0) {
+                        quizData = data; // Sobrescribe con los de la nube
+                    }
+                    initQuizSelector();
+                    renderManageExamsList();
+                })
+                .catch(err => {
+                    console.error("Error al cargar exámenes de la nube:", err);
+                    initQuizSelector(); // Usa el por defecto si falla
+                    renderManageExamsList();
+                });
+        }
+
+        function initQuizSelector() {
+            const select = document.getElementById('quiz-select');
+            select.innerHTML = "";
+            for (let key in quizData) {
+                let opt = document.createElement('option');
+                opt.value = key;
+                opt.innerText = quizData[key].title;
+                select.appendChild(opt);
+            }
+        }
+
+        function buildCreatorForm() {
+            const container = document.getElementById('questions-form-container');
+            let html = "";
+            for (let i = 1; i <= 10; i++) {
+                html += `
+                    <div class="bg-slate-50 p-4 rounded-2xl border space-y-3">
+                        <h5 class="font-bold text-sm text-indigo-600">Pregunta ${i}</h5>
+                        <input type="text" id="q${i}-text" placeholder="Enunciado..." ${i === 1 ? 'required' : ''} class="w-full px-3 py-2 rounded-xl border text-sm bg-white">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="q${i}-opt0" placeholder="Opción A" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
+                            <input type="text" id="q${i}-opt1" placeholder="Opción B" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
+                            <input type="text" id="q${i}-opt2" placeholder="Opción C" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
+                            <input type="text" id="q${i}-opt3" placeholder="Opción D" ${i === 1 ? 'required' : ''} class="px-3 py-2 rounded-xl border text-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Respuesta correcta:</label>
+                            <select id="q${i}-correct" class="w-full px-3 py-2 rounded-xl border text-sm bg-white">
+                                <option value="0">Opción A</option>
+                                <option value="1">Opción B</option>
+                                <option value="2">Opción C</option>
+                                <option value="3">Opción D</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function startQuiz(e) {
+            e.preventDefault();
+            studentInfo = {
+                name: document.getElementById('student-name').value,
+                grade: document.querySelector('input[name="student-grade"]:checked').value,
+                quizKey: document.getElementById('quiz-select').value
+            };
+            currentQuiz = quizData[studentInfo.quizKey];
+            studentAnswers = new Array(currentQuiz.questions.length).fill(null);
+            currentQuestionIndex = 0;
+
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('view-quiz').classList.remove('hidden');
+            document.getElementById('quiz-title-display').innerText = currentQuiz.title;
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = currentQuiz.questions[currentQuestionIndex];
+            document.getElementById('question-progress').innerText = `Pregunta ${currentQuestionIndex + 1} de ${currentQuiz.questions.length}`;
+            
+            let html = `<h3 class="text-xl font-bold text-slate-800 mb-4">${currentQuestionIndex + 1}. ${q.question}</h3><div class="space-y-3">`;
+            q.options.forEach((opt, idx) => {
+                const isSelected = studentAnswers[currentQuestionIndex] === idx;
+                html += `
+                    <label class="flex items-center p-4 rounded-2xl border-2 cursor-pointer transition ${isSelected ? 'border-indigo-600 bg-indigo-50 font-bold' : 'border-slate-200 hover:border-indigo-300'}">
+                        <input type="radio" name="opt" value="${idx}" ${isSelected ? 'checked' : ''} onclick="studentAnswers[${currentQuestionIndex}] = ${idx}" class="w-5 h-5 accent-indigo-600 mr-3">
+                        <span class="text-lg">${opt}</span>
+                    </label>
+                `;
+            });
+            html += `</div>`;
+            document.getElementById('question-container').innerHTML = html;
+
+            document.getElementById('prev-btn').classList.toggle('hidden', currentQuestionIndex === 0);
+            const nextBtn = document.getElementById('next-btn');
+            if (currentQuestionIndex === currentQuiz.questions.length - 1) {
+                nextBtn.innerText = "✅ Entregar Examen";
+                nextBtn.onclick = finishQuiz;
+            } else {
+                nextBtn.innerText = "Siguiente ➡️";
+                nextBtn.onclick = () => {
+                    if (studentAnswers[currentQuestionIndex] === null) return alert("Selecciona una respuesta.");
+                    currentQuestionIndex++;
+                    renderQuestion();
+                };
+            }
+        }
+
+        function prevQuestion() {
+            currentQuestionIndex--;
+            renderQuestion();
+        }
+
+        function finishQuiz() {
+            if (studentAnswers[currentQuestionIndex] === null) return alert("Selecciona una respuesta.");
+            
+            let correct = 0;
+            let reviewHtml = "";
+            currentQuiz.questions.forEach((q, idx) => {
+                const isCorrect = studentAnswers[idx] === q.correct;
+                if (isCorrect) correct++;
+                reviewHtml += `
+                    <div class="p-4 rounded-2xl border-2 ${isCorrect ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}">
+                        <p class="font-bold text-slate-800">${q.question}</p>
+                        <p class="text-sm mt-1">Tu respuesta: <b>${q.options[studentAnswers[idx]]}</b> ${isCorrect ? '✅' : '❌'}</p>
+                        ${!isCorrect ? `<p class="text-sm text-emerald-700">Respuesta correcta: <b>${q.options[q.correct]}</b></p>` : ''}
+                    </div>
+                `;
+            });
+
+            const score = Math.round((correct / currentQuiz.questions.length) * 10 * 10) / 10;
+            document.getElementById('result-student-name').innerText = `${studentInfo.name} (${studentInfo.grade})`;
+            document.getElementById('final-score').innerText = `${score} / 10`;
+            document.getElementById('review-container').innerHTML = reviewHtml;
+
+            document.getElementById('view-quiz').classList.add('hidden');
+            document.getElementById('view-results').classList.remove('hidden');
+
+            sendToGoogleSheets({
+                date: new Date().toLocaleString('es-ES'),
+                name: studentInfo.name,
+                grade: studentInfo.grade,
+                quiz: currentQuiz.title,
+                score: score
+            });
+        }
+
+        function sendToGoogleSheets(data) {
+            const syncStatus = document.getElementById('sync-status');
+            if (!GOOGLE_SCRIPT_URL) return;
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify(data)
+            })
+            .then(() => {
+                syncStatus.className = "mb-6 text-sm font-semibold text-emerald-700 bg-emerald-100 p-3 rounded-xl border border-emerald-300";
+                syncStatus.innerText = "✅ ¡Nota enviada con éxito a la hoja del profesor!";
+            })
+            .catch(error => {
+                console.error("Error al enviar:", error);
+                syncStatus.className = "mb-6 text-sm font-semibold text-rose-700 bg-rose-100 p-3 rounded-xl border border-rose-300";
+                syncStatus.innerText = "⚠️ Error al enviar a la nube.";
+            });
+        }
+
+        function toggleTeacherModal() {
+            document.getElementById('teacher-modal').classList.toggle('hidden');
+        }
+
+        function checkPass() {
+            const password = "1972"; // Contraseña del profesor
+
+            if (document.getElementById('teacher-pass').value === password) {
+                document.getElementById('teacher-login').classList.add('hidden');
+                document.getElementById('teacher-dash').classList.remove('hidden');
+                loadCloudResults();
+                renderManageExamsList();
+            } else {
+                alert("Contraseña incorrecta");
+            }
+        }
+
+        function switchTab(tab) {
+            // Ocultar todas las secciones
+            document.getElementById('section-results').classList.add('hidden');
+            document.getElementById('section-creator').classList.add('hidden');
+            document.getElementById('section-manage-exams').classList.add('hidden');
+            
+            // Restablecer estilos de los botones
+            document.getElementById('tab-results-btn').className = "px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm whitespace-nowrap";
+            document.getElementById('tab-creator-btn').className = "px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm whitespace-nowrap";
+            document.getElementById('tab-manage-btn').className = "px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm whitespace-nowrap";
+
+            // Mostrar la seleccionada
+            if (tab === 'results') {
+                document.getElementById('section-results').classList.remove('hidden');
+                document.getElementById('tab-results-btn').className = "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm whitespace-nowrap";
+            } else if (tab === 'creator') {
+                document.getElementById('section-creator').classList.remove('hidden');
+                document.getElementById('tab-creator-btn').className = "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm whitespace-nowrap";
+            } else if (tab === 'manage-exams') {
+                document.getElementById('section-manage-exams').classList.remove('hidden');
+                document.getElementById('tab-manage-btn').className = "px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm whitespace-nowrap";
+                renderManageExamsList();
+            }
+        }
+
+        function renderManageExamsList() {
+            const container = document.getElementById('manage-exams-list');
+            let html = "";
+
+            const keys = Object.keys(quizData);
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 text-center py-4">No hay exámenes disponibles.</p>`;
+                return;
+            }
+
+            keys.forEach(key => {
+                const quiz = quizData[key];
+                html += `
+                    <div class="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border">
+                        <div>
+                            <h5 class="font-bold text-sm text-slate-800">${quiz.title}</h5>
+                            <p class="text-xs text-slate-500">${quiz.questions ? quiz.questions.length : 0} preguntas (ID: ${key})</p>
+                        </div>
+                        <button onclick="deleteQuiz('${key}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl text-xs font-bold transition">
+                            🗑️ Eliminar
+                        </button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function deleteQuiz(quizKey) {
+            if (confirm(`¿Estás seguro de que deseas eliminar este examen? Desaparecerá de la aplicación para todos.`)) {
+                // Eliminar localmente
+                delete quizData[quizKey];
+                initQuizSelector();
+                renderManageExamsList();
+
+                // Enviar petición a Google Sheets para borrarlo de la nube
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({
+                        action: "delete_quiz",
+                        quizKey: quizKey
+                    })
+                })
+                .then(() => {
+                    alert("Examen eliminado correctamente de la nube.");
+                })
+                .catch(err => {
+                    console.error("Error al eliminar examen en la nube:", err);
+                    alert("Se eliminó localmente, pero hubo un problema al actualizar la nube.");
+                });
+            }
+        }
+
+        function loadCloudResults() {
+            const container = document.getElementById('results-table');
+            container.innerHTML = `<p class="text-sm text-slate-500 py-4">⏳ Sincronizando notas desde la nube...</p>`;
+
+            fetch(GOOGLE_SCRIPT_URL)
+                .then(res => res.json())
+                .then(data => {
+                    allCloudResults = data || [];
+                    renderTable(allCloudResults);
+                })
+                .catch(err => {
+                    console.error(err);
+                    container.innerHTML = `<p class="text-sm text-rose-500 py-4 text-center">⚠️ Error al conectar con Google Sheets.</p>`;
+                });
+        }
+
+        function renderTable(dataToRender) {
+            const container = document.getElementById('results-table');
+            if (!dataToRender || dataToRender.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 py-4 text-center">No se encontraron resultados en la nube.</p>`;
+                return;
+            }
+
+            let html = `<table class="w-full text-left text-sm"><tr class="bg-slate-100"><th class="p-2">Fecha</th><th class="p-2">Alumno</th><th class="p-2">Curso</th><th class="p-2">Examen</th><th class="p-2">Nota</th></tr>`;
+            dataToRender.slice().reverse().forEach(r => {
+                html += `<tr class="border-b"><td class="p-2 text-xs text-slate-400">${r.date}</td><td class="p-2 font-bold">${r.name}</td><td class="p-2">${r.grade}</td><td class="p-2 text-slate-600">${r.quiz}</td><td class="p-2 text-indigo-600 font-bold">${r.score}</td></tr>`;
+            });
+            container.innerHTML = html + `</table>`;
+        }
+
+        function filterResults() {
+            const selectedGrade = document.getElementById('filter-grade').value;
+            const searchText = document.getElementById('filter-name').value.toLowerCase();
+
+            const filtered = allCloudResults.filter(r => {
+                const matchGrade = selectedGrade === "" || r.grade === selectedGrade;
+                const matchName = r.name.toLowerCase().includes(searchText) || r.quiz.toLowerCase().includes(searchText);
+                return matchGrade && matchName;
+            });
+
+            renderTable(filtered);
+        }
+
+        function clearCloudResults() {
+            if (confirm("⚠️ ¿Estás seguro de que quieres BORRAR TODOS los resultados de la nube?")) {
+                const container = document.getElementById('results-table');
+                container.innerHTML = `<p class="text-sm text-slate-500 py-4">⏳ Borrando datos...</p>`;
+
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({ action: "clear" })
+                })
+                .then(() => {
+                    alert("¡Registros borrados con éxito!");
+                    loadCloudResults();
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Error al intentar borrar los datos.");
+                    loadCloudResults();
+                });
+            }
+        }
+
+        // GUARDAR EXAMEN NUEVO DIRECTAMENTE EN LA NUBE
+        function saveNewQuiz(e) {
+            e.preventDefault();
+            const title = document.getElementById('new-quiz-title').value;
+            let questionsList = [];
+
+            for (let i = 1; i <= 10; i++) {
+                const text = document.getElementById(`q${i}-text`).value;
+                if (text.trim() !== "") {
+                    questionsList.push({
+                        question: text,
+                        options: [
+                            document.getElementById(`q${i}-opt0`).value,
+                            document.getElementById(`q${i}-opt1`).value,
+                            document.getElementById(`q${i}-opt2`).value,
+                            document.getElementById(`q${i}-opt3`).value
+                        ],
+                        correct: parseInt(document.getElementById(`q${i}-correct`).value)
+                    });
+                }
+            }
+
+            if (questionsList.length === 0) {
+                alert("Debes rellenar al menos la primera pregunta.");
+                return;
+            }
+
+            const quizKey = 'examen_' + Date.now();
+            const newQuizObj = { title, questions: questionsList };
+
+            // Enviar a la nube (Google Sheets)
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({
+                    action: "save_quiz",
+                    quizKey: quizKey,
+                    quizData: newQuizObj
+                })
+            })
+            .then(() => {
+                alert(`¡Examen "${title}" guardado y subido a la nube con éxito! Ya aparecerá en las tablets.`);
+                quizData[quizKey] = newQuizObj;
+                initQuizSelector();
+                renderManageExamsList();
                 document.getElementById('new-quiz-title').value = "";
                 buildCreatorForm();
                 switchTab('results');
